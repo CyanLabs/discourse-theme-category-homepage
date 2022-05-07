@@ -1,0 +1,220 @@
+<script type="text/discourse-plugin" version="0.8">
+    function defaultSettings() {
+        return {};
+    }
+
+    function parseSetups(raw) {
+        const parsed = {};
+        raw.split("|").forEach(setting => {
+            const [category, value] = setting.split(",").map(s => s.trim());
+            parsed[category] = parsed[category] || defaultSettings();
+            parsed[category]["post-id"] = value;
+        });
+        return parsed;
+    }
+    
+    function parseTags(raw) {
+        const parsed = {};
+        raw.split("|").forEach(setting => {
+            var words = setting.split(",").map(s => s.trim());
+            const category = words.shift()
+            parsed[category] = parsed[category] || defaultSettings();
+            parsed[category]["tags"] = words;
+        });
+        return parsed;
+    }
+
+    const container = Discourse.__container__;
+    const { h } = require("virtual-dom");
+    const { ajax } = require("discourse/lib/ajax");
+    const PostCooked = require("discourse/widgets/post-cooked").default;
+    const postCache = {};
+    
+    api.createWidget("category-tooltip", {
+        tagName: "div.category-tooltip",
+        getPost(id) {
+            if (!postCache[id]) {
+                ajax(`/t/${id}.json`).then(response => {
+                    postCache[id] = new PostCooked({ cooked: response.post_stream.posts[0].cooked });
+                    this.scheduleRerender();
+                });
+            }
+            return postCache[id];
+        }, 
+        html(attrs) {
+            console.log(attrs);
+            if (setups.hasOwnProperty(attrs.slug)) {
+                const category = setups[attrs.slug];
+                const nodes = [
+                    this.getPost(category["post-id"])
+                ];
+                console.log(attrs);
+                return h("category-tooltip", nodes);
+            }
+        }
+    });
+    
+    api.modifyClass("component:categories-boxes", {
+        category_tag_list: Ember.computed(function() {
+            const result = parseTags(settings.tag_list);
+            return result;
+        }),
+        
+        actions: {
+            changeCategoryNotificationLevel(category, args) {
+                let notificationLevel = args;
+                category.setNotification(notificationLevel);
+            }
+        }
+    })
+</script>
+
+
+
+<script type="text/x-handlebars" data-template-name="components/categories-boxes">
+{{#each categories as |c|}}
+  <div style={{border-color c.color}} data-category-id={{c.id}} data-notification-level={{c.notificationLevelString}} data-url={{c.url}} class="category category-box category-box-{{c.slug}} {{if c.isMuted "muted"}} {{if noCategoryStyle "no-category-boxes-style"}}">
+    <div class="category-box-inner">
+      <div style={{unless noCategoryStyle (concat (background-color c.color) (category-color-variable c.color))}} class="category-logo" {{if noCategoryStyle "no-category-boxes-style"}}" href={{c.url}}>
+        {{#if (theme-setting 'show_bell')}}
+          {{category-notifications-button
+            value=c.notification_level
+            onChange=(action "changeCategoryNotificationLevel" c)
+          }}
+        {{/if}}
+        {{#if (theme-setting 'show_category_unreadnew')}}
+            {{category-unread category=c tagName="div" class="unread-new"}}
+        {{/if}}
+        {{#if c.uploaded_logo.url}}
+          <a href={{c.url}}>
+            {{cdn-img
+                src=c.uploaded_logo.url
+                class="logo"
+                width=c.uploaded_logo.width
+                height=c.uploaded_logo.height
+            }}
+          </a>
+        {{/if}}
+      </div>
+      
+      <div class="category-details">
+        <div class="category-box-heading">
+          <a href={{c.url}}>
+            <h3>
+              {{#if c.read_restricted}}
+                {{d-icon "lock"}}
+              {{/if}}
+              {{c.name}}
+            </h3>
+          </a>
+          <div class="description">
+            {{#if (theme-setting 'show_description')}}
+              {{text-overflow class="overflow" text=c.description_excerpt}}
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if c.isMuted}}
+          <div class="category-details">
+            Cette catégorie est muette. Pour la suivre à nouveau, cliquez sur la cloche.
+          </div>
+        {{else}}
+          {{#if (theme-setting 'text_all_posts')}}
+            <h4 style='margin-bottom:1ex;'>
+              <a href={{c.url}}> {{d-icon (theme-setting 'icon_all_posts')}}{{theme-setting 'text_all_posts'}}</a>
+            </h4>
+          {{/if}}
+          <div class="description no-padding-bottom">
+            {{#with (get category_tag_list c.slug) as |setting_tags_list|}}
+              <div class="tag-list direct-access-links">
+                {{#if (theme-setting 'text_tags')}}
+                  <div class=separator>{{theme-setting 'text_tags'}}</div>
+                {{/if}}
+                {{#each setting_tags_list.tags as |tag|}}
+                  <span class="tag-box badge-wrapper">
+                    {{discourse-tag tag}}
+                  </span>
+                {{/each}}
+              </div>
+            {{/with}}
+            {{#if c.subcategories}}
+              {{#if (theme-setting 'show_subcategories')}}
+                <div class="category-list direct-access-links">
+                  {{#if (theme-setting 'text_subcategories')}}
+                    <div class=separator>{{theme-setting 'text_subcategories'}}</div>
+                  {{/if}}
+                  {{#if (theme-setting 'separate_private_subcategories')}}
+                    <div class="subcategories">
+                      {{#each c.subcategories as |sc|}}
+                        {{#unless sc.read_restricted}}
+                          <a class="subcategory" href={{sc.url}}>
+                            <span class="subcategory-image-placeholder">
+                              {{cdn-img
+                                src=sc.uploaded_logo.url
+                                class="logo"
+                                width=sc.uploaded_logo.width
+                                height=sc.uploaded_logo.height}}
+                            </span>
+                            {{category-link sc hideParent="true"}}
+                            {{#if (theme-setting 'show_subcategory_unreadnew')}}
+                              {{category-unread category=sc class="unread-new"}}
+                            {{/if}}
+                          </a>
+                        {{/unless}}
+                      {{/each}}
+                    </div>
+                    {{#if (theme-setting 'text_private_subcategories')}}
+                      <div class=separator>{{theme-setting 'text_private_subcategories'}}</div>
+                    {{/if}}
+                    <div class="subcategories private-subcategories">
+                      {{#each c.subcategories as |sc|}}
+                        {{#if sc.read_restricted}}
+                          <a class="subcategory" href={{sc.url}}>
+                            <span class="subcategory-image-placeholder">
+                              {{cdn-img
+                                src=sc.uploaded_logo.url
+                                class="logo"
+                                width=sc.uploaded_logo.width
+                                height=sc.uploaded_logo.height}}
+                            </span>
+                            {{category-link sc hideParent="true"}}
+                            {{#if (theme-setting 'show_subcategory_unreadnew')}}
+                              {{category-unread category=sc class="unread-new"}}
+                            {{/if}}
+                          </a>
+                        {{/if}}
+                      {{/each}}
+                    </div>
+                  {{else}}
+                    <div class="subcategories">
+                      {{#each c.subcategories as |sc|}}
+                        <a class="subcategory" href={{sc.url}}>
+                          <span class="subcategory-image-placeholder">
+                            {{cdn-img
+                              src=sc.uploaded_logo.url
+                              class="logo"
+                              width=sc.uploaded_logo.width
+                              height=sc.uploaded_logo.height}}
+                          </span>
+                          {{category-link sc hideParent="true"}}
+                          {{#if (theme-setting 'show_subcategory_unreadnew')}}
+                            {{category-unread category=sc class="unread-new"}}
+                          {{/if}}
+                        </a>
+                      {{/each}}
+                    </div>
+                  {{/if}}
+                </div>
+              {{/if}}
+            {{/if}}
+          </div>
+        {{/if}}
+      </div>
+      {{#if (theme-setting 'show_quantity')}}
+        <div class="category-stats" title={{c.statTitle}}>{{html-safe c.stat}}</div>
+      {{/if}}
+    </div>
+  </div>
+{{/each}}
+</script>
+

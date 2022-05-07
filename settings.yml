@@ -1,0 +1,72 @@
+target_box_size:
+  type: string
+  default: "250px"
+  description: |
+    The target size for the flexible category box.<br/>
+    You should enter a <a href="https://www.w3schools.com/CSSref/css_units.asp"> valid css length</a>.<br/>
+    On a full size (1100px) screen, "<code>200px</code>" will give you mostly 4 boxes per line, and "<code>300px</code>" will give you mostly 3 boxes per line.
+    
+
+show_description: 
+  default: true
+  description: 'Show description excerpt from "About This Category" post'
+
+show_category_unreadnew: 
+  default: true
+  description: 'Show the unread/new indicators for categories'
+
+show_quantity: 
+  default: true
+  description: 'Show the quantity of posts in categories'
+
+show_bell: 
+  default: true
+  description: 'Show the notification level button for categories'
+
+text_all_posts: 
+  type: string
+  default: "See all posts in this category"
+  description: 'If empty, remove the link.'
+
+icon_all_posts: 
+  type: string
+  default: ""
+  description: 'Icon preceding the previous text. May be left empty.'
+
+text_tags: 
+  type: string
+  default: "Main tags"
+  description: 'If empty, remove the separator.'
+
+tag_list:
+  type: list
+  default: 'staff, important, urgent'
+  description: |
+    Each line should be in the format of "<code>category-slug</code>, <code>tag</code>, <code>tag</code>...".<br/>
+    <ul>
+    <li>The category slug is the category name from its url, for example /c/<b>site-feedback</b></li>
+    <li>The tags are separated by a comma, with no comma at the end
+
+show_subcategories: 
+  default: true
+  description: 'Show the subcategories'
+
+text_subcategories: 
+  type: string
+  default: "Subcategories"
+  description: |
+    If empty, remove the separator.<br/>
+    If <code>separate_private_subcategories</code> is true, then apply text for public subcategories.
+
+show_subcategory_unreadnew: 
+  default: true
+  description: 'Show the unread/new indicators for subcategories.'
+
+separate_private_subcategories: 
+  default: true
+  description: 'Display public and private subcategories separately.'
+
+text_private_subcategories: 
+  type: string
+  default: "Private subcategories"
+  description: 'If empty, remove the separator.'
