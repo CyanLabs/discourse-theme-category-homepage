@@ -55,6 +55,7 @@
     });
     
     api.modifyClass("component:categories-boxes", {
+        pluginId: 'discourse-theme-category-homepage',
         category_tag_list: Ember.computed(function() {
             const result = parseTags(settings.tag_list);
             return result;
