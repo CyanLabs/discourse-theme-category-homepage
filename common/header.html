@@ -87,14 +87,14 @@
             {{category-unread category=c tagName="div" class="unread-new"}}
         {{/if}}
         {{#if c.uploaded_logo.url}}
-          <h3><a href={{c.url}}>
+          <h3 class="category-title"><a href={{c.url}}>
             {{cdn-img
                 src=c.uploaded_logo.url
                 class="logo"
                 width=c.uploaded_logo.width
                 height=c.uploaded_logo.height
             }}
-          </a> {{c.name}}</h3>
+           {{c.name}}</a></h3>
         {{/if}}
       </div>
       
